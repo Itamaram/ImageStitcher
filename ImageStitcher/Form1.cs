@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -15,15 +16,15 @@ namespace ImageStitcher
         public Progress(int max)
         {
             FormBorderStyle = FormBorderStyle.None;
-            
+
             Size = new Size(102, 25);
 
-            
+
 
             progress = new ProgressBar
             {
                 Maximum = max,
-                Location = new Point(1,1)
+                Location = new Point(1, 1)
             };
 
             Controls.Add(progress);
@@ -106,17 +107,30 @@ namespace ImageStitcher
                 }
 
                 var dir = Path.Combine(Application.StartupPath, "Output");
-                var filename = DateTime.Now.ToString("HHmmss-ddMMyyyy") + ".jpg";
+                var filename = DateTime.Now.ToString("ddMMyyyy-HHmmss") + ".jpg";
 
                 if (!Directory.Exists(dir))
                     Directory.CreateDirectory(dir);
 
                 var path = Path.Combine(dir, filename);
 
-                canvas.Save(path);
+                CompressAndSsave(canvas, 80, path);
+                
                 Process.Start(path);
                 progress.Increment(10);
             }
+        }
+
+        private static void CompressAndSsave(Image source, int quality, string path)
+        {
+            var encoder = ImageCodecInfo.GetImageDecoders().First(f => f.FormatID == ImageFormat.Jpeg.Guid);
+
+            var @params = new EncoderParameters
+            {
+                Param = new[] { new EncoderParameter(Encoder.Quality, quality) }
+            };
+
+            source.Save(path, encoder, @params);  
         }
     }
 }
