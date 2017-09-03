@@ -1,6 +1,7 @@
-﻿using System.Xml.Serialization;
+﻿using System.IO;
+using System.Windows.Forms;
+using System.Xml.Serialization;
 using EasyConfigurationSection;
-using EasyConfigurationSection = EasyConfigurationSection.EasyConfigurationSection;
 
 namespace ImageStitcher
 {
@@ -9,7 +10,10 @@ namespace ImageStitcher
         public static Configuration Get => new EasyConfiguration().GetSection<Configuration>("Config");
 
         [XmlElement]
-        public ImageConfiguration Image { get; set; }
+        public ImageConfiguration Image { get; set; } = new ImageConfiguration();
+
+        [XmlElement]
+        public OutputConfiguration Output { get; set; } = new OutputConfiguration();
     }
 
     public class ImageConfiguration
@@ -25,5 +29,35 @@ namespace ImageStitcher
 
         [XmlAttribute]
         public int Border { get; set; } = 10;
+
+        [XmlElement]
+        public string Font { get; set; } = "Arial, 50pt";
+    }
+
+    public class OutputConfiguration
+    {
+        [XmlElement]
+        public string OutputDirectory { get; set; } = Path.Combine(Application.StartupPath, "Output");
+
+        [XmlAttribute]
+        public int Compression { get; set; } = 80;
+
+        [XmlElement]
+        public TextboxDefaults TextboxDefaults { get; set; } = new TextboxDefaults();
+    }
+
+    public class TextboxDefaults
+    {
+        [XmlElement]
+        public string Line1 { get; set; } = "Dental Today";
+
+        [XmlElement]
+        public string Line2 { get; set; }
+
+        [XmlElement]
+        public string Line3 { get; set; }
+
+        [XmlElement]
+        public string Line4 { get; set; }    
     }
 }

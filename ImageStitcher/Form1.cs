@@ -11,29 +11,6 @@ using System.Windows.Forms;
 
 namespace ImageStitcher
 {
-    public class ContainersCollection : IEnumerable<ImageContainer>
-    {
-        private readonly IReadOnlyList<ImageContainer> containers;
-
-        public ContainersCollection()
-        {
-            containers = Enumerable.Range(0, 8)
-                .Select(i => new ImageContainer(this, i) { Dock = DockStyle.Fill })
-                .ToList();
-        }
-
-        public IEnumerator<ImageContainer> GetEnumerator() => containers.GetEnumerator();
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        public void Swap(int a, int b)
-        {
-            var temp = containers[a].ImageLocation;
-            containers[a].SetImage(containers[b].ImageLocation);
-            containers[b].SetImage(temp);
-        }
-    }
-
     public partial class Form1 : Form
     {
         private readonly ContainersCollection containers = new ContainersCollection();
@@ -41,6 +18,11 @@ namespace ImageStitcher
         public Form1()
         {
             InitializeComponent();
+
+            textBox1.Text = Configuration.Get.Output.TextboxDefaults.Line1;
+            textBox2.Text = Configuration.Get.Output.TextboxDefaults.Line2;
+            textBox3.Text = Configuration.Get.Output.TextboxDefaults.Line3;
+            textBox4.Text = Configuration.Get.Output.TextboxDefaults.Line4;
 
             foreach (var (container, point) in containers.Zip(CellCoordinates()))
                 tableLayoutPanel1.Controls.Add(container, point.X, point.Y);
@@ -94,7 +76,7 @@ namespace ImageStitcher
                 Enumerable.Range(0, 4)
                     .Select(i => new Rectangle(width + padding + border, height + padding + border + i * height / 4, width, height / 4))
                     .Zip(new[] { textBox1, textBox2, textBox3, textBox4 }.Select(b => b.Text))
-                    .ForEach((rect, text) => g.DrawString(text, "Arial, 50pt".ToFont(), Brushes.Black, rect,
+                    .ForEach((rect, text) => g.DrawString(text, config.Image.Font.ToFont(), Brushes.Black, rect,
                         new StringFormat
                         {
                             LineAlignment = StringAlignment.Center,
@@ -105,15 +87,11 @@ namespace ImageStitcher
                 progress.Report(1);
             }
 
-            var dir = Path.Combine(Application.StartupPath, "Output");
-            var filename = DateTime.Now.ToString("ddMMyyyy-HHmmss") + ".jpg";
+            var path = config.Output.OutputDirectory
+                .Do(d => Directory.CreateDirectory(d))
+                .Map(d => Path.Combine(d, DateTime.Now.ToString("ddMMyyyy-HHmmss") + ".jpg"));
 
-            if (!Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var path = Path.Combine(dir, filename);
-
-            CompressAndSave(canvas, 80, path);
+            CompressAndSave(canvas, config.Output.Compression, path);
 
             Process.Start(path);
             progress.Report(10);
@@ -129,6 +107,29 @@ namespace ImageStitcher
             };
 
             source.Save(path, encoder, @params);
+        }
+    }
+
+    public class ContainersCollection : IEnumerable<ImageContainer>
+    {
+        private readonly IReadOnlyList<ImageContainer> containers;
+
+        public ContainersCollection()
+        {
+            containers = Enumerable.Range(0, 8)
+                .Select(i => new ImageContainer(this, i) { Dock = DockStyle.Fill })
+                .ToList();
+        }
+
+        public IEnumerator<ImageContainer> GetEnumerator() => containers.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public void Swap(int a, int b)
+        {
+            var temp = containers[a].ImageLocation;
+            containers[a].SetImage(containers[b].ImageLocation);
+            containers[b].SetImage(temp);
         }
     }
 }

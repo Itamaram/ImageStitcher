@@ -27,6 +27,25 @@ namespace ImageStitcher
         protected abstract void Handle(T item);
     }
 
+    public abstract class DataFormatDragDropHandler<T> : DragDropHandler
+    {
+        protected abstract string DataFormat { get; }
+
+        public bool CanHandle(IDataObject data)
+        {
+            return data.GetDataPresent(DataFormat) && CanHandle((T) data.GetData(DataFormat));
+        }
+
+        protected abstract bool CanHandle(T data);
+
+        public void Handle(IDataObject data)
+        {
+            Handle((T)data.GetData(DataFormat));
+        }
+
+        protected abstract void Handle(T item);
+    }
+
     public class InternalDragDrop : DragDropHandler<int>
     {
         private readonly ImageContainer container;
@@ -41,7 +60,7 @@ namespace ImageStitcher
         protected override void Handle(int item) => container.Swap(item);
     }
 
-    public class ExternalDragDrop : DragDropHandler<string[]>
+    public class ExternalDragDrop : DataFormatDragDropHandler<string[]>
     {
         private readonly ImageContainer container;
 
@@ -49,6 +68,8 @@ namespace ImageStitcher
         {
             this.container = container;
         }
+
+        protected override string DataFormat { get; } = DataFormats.FileDrop;
 
         protected override bool CanHandle(string[] data) => true;
 
