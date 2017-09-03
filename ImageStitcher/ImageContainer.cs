@@ -2,39 +2,96 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace ImageStitcher
 {
+    public interface DragDropHandler
+    {
+        bool CanHandle(IDataObject data);
+        void Handle(IDataObject data);
+    }
+
+    public abstract class DragDropHandler<T> : DragDropHandler
+    {
+        public bool CanHandle(IDataObject data)
+        {
+            return data.GetDataPresent(typeof(T)) && CanHandle((T)data.GetData(typeof(T)));
+        }
+
+        protected abstract bool CanHandle(T data);
+
+        public void Handle(IDataObject data) => Handle((T)data.GetData(typeof(T)));
+
+        protected abstract void Handle(T item);
+    }
+
+    public class InternalDragDrop : DragDropHandler<int>
+    {
+        private readonly ImageContainer container;
+
+        public InternalDragDrop(ImageContainer container)
+        {
+            this.container = container;
+        }
+
+        protected override bool CanHandle(int data) => true;
+
+        protected override void Handle(int item) => container.Swap(item);
+    }
+
+    public class ExternalDragDrop : DragDropHandler<string[]>
+    {
+        private readonly ImageContainer container;
+
+        public ExternalDragDrop(ImageContainer container)
+        {
+            this.container = container;
+        }
+
+        protected override bool CanHandle(string[] data) => true;
+
+        protected override void Handle(string[] item) => container.SetImage(item[0]);
+    }
+
     public class ImageContainer : Panel
     {
-        private static ImageContainer drag;
+        private readonly ContainersCollection parent;
+        private readonly int id;
 
-        public ImageContainer()
+        public ImageContainer(ContainersCollection parent, int id)
         {
+            this.parent = parent;
+            this.id = id;
+
+            handlers = new DragDropHandler[]
+            {
+                new InternalDragDrop(this),
+                new ExternalDragDrop(this),
+            };
+
             Controls.Add(remove, image, add);
             remove.Location = new Point(Size.Width - remove.Width - 3, 3);
-            add.Click += AddClick;
-            add.DragEnter += (_, e) => e.Effect = DragDropEffects.Move;
-            add.DragDrop += (sender, args) =>
-            {
-                SetImage(drag.image.ImageLocation);
-                drag.RemoveImage();
 
-            };
-            image.DragEnter += (_, e) => e.Effect = DragDropEffects.Move;
-            image.DragDrop += (sender, args) =>
-            {
-                drag.image.ImageLocation = image.ImageLocation;
-                image.ImageLocation = args.Data.GetData(DataFormats.Text).ToString();
-            };
+            add.Do(RegisterDragDrop);
+            image.Do(RegisterDragDrop);
+
             remove.Click += RemoveClick;
-            image.MouseDown += (_, __) =>
-            {
-                drag = this;
-                DoDragDrop(image.ImageLocation, DragDropEffects.All);
-            };
+
+            add.Click += AddClick;
+
+            image.MouseDown += (_, __) => DoDragDrop(id, DragDropEffects.All);
         }
+
+        private void RegisterDragDrop(Control control)
+        {
+            control.DragEnter += (_, e) => e.Effect = DragDropEffects.All;
+            control.DragDrop += (sender, args) =>
+                handlers.FirstOrDefault(h => h.CanHandle(args.Data))?.Handle(args.Data);
+        }
+
+        private readonly IEnumerable<DragDropHandler> handlers;
 
         private readonly Button add = new Button
         {
@@ -75,12 +132,19 @@ namespace ImageStitcher
 
         private void RemoveImage()
         {
+            image.ImageLocation = null;
             image.Hide();
             remove.Hide();
         }
 
         public ImageContainer SetImage(string path)
         {
+            if (path == null)
+            {
+                RemoveImage();
+                return this;
+            }
+
             image.ImageLocation = path;
 
             //this show ordering is important
@@ -91,6 +155,8 @@ namespace ImageStitcher
         }
 
         public string ImageLocation => image.ImageLocation;
+
+        public void Swap(int i) => parent.Swap(id, i);
     }
 
     public static class Extensions
@@ -103,13 +169,19 @@ namespace ImageStitcher
 
         public static void ForceEnumeration<A>(this IEnumerable<A> items)
         {
-            foreach (var item in items) ;
+            foreach (var _ in items) ;
         }
 
         public static void ForEach<A>(this IEnumerable<A> items, Action<A> action)
         {
             foreach (var item in items)
                 action(item);
+        }
+
+        public static void ForEach<A, B>(this IEnumerable<(A, B)> items, Action<A, B> action)
+        {
+            foreach (var item in items)
+                action(item.Item1, item.Item2);
         }
 
         public static Rectangle ToRectangle(this Point p, int width, int height)
@@ -121,7 +193,28 @@ namespace ImageStitcher
 
         public static Font ToFont(this string s)
         {
-            return (Font) converter.ConvertFromString(s);
+            return (Font)converter.ConvertFromString(s);
         }
+
+        public static IEnumerable<(A, B)> Zip<A, B>(this IEnumerable<A> first, IEnumerable<B> second)
+        {
+            return first.Zip(second, (f, s) => (f, s));
+        }
+
+        public static A Do<A>(this A a, Action<A> action)
+        {
+            action(a);
+            return a;
+        }
+
+        public static (A, B) Do<A, B>(this (A, B) t, Action<A, B> action)
+        {
+            action(t.Item1, t.Item2);
+            return t;
+        }
+
+        public static B Map<A, B>(this A a, Func<A, B> map) => map(a);
+
+        public static C Map<A, B, C>(this (A, B) t, Func<A, B, C> map) => map(t.Item1, t.Item2);
     }
 }
