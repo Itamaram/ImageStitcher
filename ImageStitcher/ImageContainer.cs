@@ -105,6 +105,10 @@ namespace ImageStitcher
             image.MouseDown += (_, __) => DoDragDrop(id, DragDropEffects.All);
         }
 
+        public delegate void ImageChanged(ImageContainer container, string path);
+
+        public ImageChanged OnImageChanged;
+
         private void RegisterDragDrop(Control control)
         {
             control.DragEnter += (_, e) => e.Effect = DragDropEffects.All;
@@ -163,15 +167,17 @@ namespace ImageStitcher
             if (path == null)
             {
                 RemoveImage();
-                return this;
+            }
+            else
+            {
+                image.ImageLocation = path;
+
+                //this show ordering is important
+                remove.Show();
+                image.Show();
             }
 
-            image.ImageLocation = path;
-
-            //this show ordering is important
-            remove.Show();
-            image.Show();
-
+            OnImageChanged?.Invoke(this, path);
             return this;
         }
 
