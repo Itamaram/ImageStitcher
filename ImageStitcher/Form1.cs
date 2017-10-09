@@ -26,6 +26,8 @@ namespace ImageStitcher
 
             foreach (var (container, point) in containers.Zip(CellCoordinates()))
                 tableLayoutPanel1.Controls.Add(container, point.X, point.Y);
+
+            Shown += toolStripMenuItem1_Click;
         }
 
         private static IEnumerable<Point> CellCoordinates()
