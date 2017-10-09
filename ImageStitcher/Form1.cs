@@ -38,9 +38,14 @@ namespace ImageStitcher
         private void toolStripMenuItem1_Click(object sender, EventArgs e)
         {
             var dialog = new OpenFileDialog { Multiselect = true };
-            if (dialog.ShowDialog() == DialogResult.OK)
-                foreach (var (f, c) in dialog.FileNames.Zip(containers))
-                    c.SetImage(f);
+            if (dialog.ShowDialog() != DialogResult.OK)
+                return;
+
+            foreach (var (f, c) in dialog.FileNames.Zip(containers))
+                c.SetImage(f);
+
+            GetParentDirectory()
+                ?.Name.Do(name => textBox2.Text = name);
         }
 
         private void stitchToolStripMenuItem_Click(object sender, EventArgs e)
@@ -49,6 +54,14 @@ namespace ImageStitcher
             var progress = new Progress<int>(loading.Increment);
             Task.Run(() => { Save(progress); });
             loading.ShowDialog();
+        }
+
+        private DirectoryInfo GetParentDirectory()
+        {
+            return containers.Select(c => c.ImageLocation)
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Select(s => new DirectoryInfo(s).Parent)
+                .FirstOrDefault();
         }
 
         private void Save(IProgress<int> progress)
@@ -83,13 +96,11 @@ namespace ImageStitcher
                             Alignment = StringAlignment.Center
                         }));
 
-
                 progress.Report(1);
             }
-
-            var path = config.Output.OutputDirectory
-                .Do(d => Directory.CreateDirectory(d))
-                .Map(d => Path.Combine(d, DateTime.Now.ToString("ddMMyyyy-HHmmss") + ".jpg"));
+            
+            var path = GetParentDirectory()
+                .Map(d => Path.Combine(d.FullName, $"{textBox2.Text}-landscape-{DateTime.Now:ddMMyyyy}.jpg"));
 
             CompressAndSave(canvas, config.Output.Compression, path);
 
