@@ -134,7 +134,7 @@ namespace ImageStitcher
         {
             Dock = DockStyle.Fill,
             Location = new Point(0, 0),
-            SizeMode = PictureBoxSizeMode.StretchImage,
+            SizeMode = PictureBoxSizeMode.Zoom,
             Visible = false,
             AllowDrop = true
         };

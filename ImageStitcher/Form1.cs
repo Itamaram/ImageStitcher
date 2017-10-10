@@ -84,7 +84,9 @@ namespace ImageStitcher
                     .Zip(containers, (p, c) => (Point: p, Path: c.ImageLocation))
                     .Where(t => t.Path != null && File.Exists(t.Path)))
                 {
-                    g.DrawImage(Image.FromFile(location), point.ToRectangle(width, height));
+                    var image = Image.FromFile(location);
+
+                    g.DrawImage(image, ImageBounds(image, point, width, height));
                     progress.Report(1);
                 }
 
@@ -100,7 +102,7 @@ namespace ImageStitcher
 
                 progress.Report(1);
             }
-            
+
             var path = GetParentDirectory()
                 .Map(d => Path.Combine(d.FullName, $"{textBox2.Text}-landscape-{DateTime.Now:ddMMyyyy}.jpg"));
 
@@ -108,6 +110,20 @@ namespace ImageStitcher
 
             Process.Start(path);
             progress.Report(10);
+        }
+
+        private static Rectangle ImageBounds(Image image, Point corner, int width, int height)
+        {
+            if (image.Width > image.Height)
+            {
+                var side = (int) (image.Height * width / (double) image.Width);
+                return new Point(corner.X, corner.Y + (height - side) / 2).ToRectangle(width, side);
+            }
+            else
+            {
+                var side = (int) (image.Width * height / (double) image.Height);
+                return new Point(corner.X + (width - side) / 2, corner.Y).ToRectangle(side, height);
+            }
         }
 
         private static void CompressAndSave(Image source, int quality, string path)
