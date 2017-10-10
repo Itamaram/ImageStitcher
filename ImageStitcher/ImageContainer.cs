@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace ImageStitcher
@@ -237,5 +239,45 @@ namespace ImageStitcher
         public static B Map<A, B>(this A a, Func<A, B> map) => map(a);
 
         public static C Map<A, B, C>(this (A, B) t, Func<A, B, C> map) => map(t.Item1, t.Item2);
+
+        private const int BytesPerPixel = 4;
+
+        /// <summary>
+        /// Change the opacity of an image, taken from https://stackoverflow.com/a/8843188/1229804
+        /// </summary>
+        /// <param name="image">The original image</param>
+        /// <param name="opacity">Opacity, where 1.0 is no opacity, 0.0 is full transparency</param>
+        /// <returns>The changed image</returns>
+        public static Image ChangeImageOpacity(this Image image, double opacity)
+        {
+            if ((image.PixelFormat & PixelFormat.Indexed) == PixelFormat.Indexed)
+            {
+                // Cannot modify an image with indexed colors
+                return image;
+            }
+
+            var bmp = (Bitmap)image.Clone();
+            
+            var data = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            
+            var ptr = data.Scan0;
+            
+            var bytes = new byte[bmp.Width * bmp.Height * BytesPerPixel];
+
+            Marshal.Copy(ptr, bytes, 0, bytes.Length);
+            
+            for (var counter = 0; counter < bytes.Length; counter += BytesPerPixel)
+            {
+                // argbValues is in format BGRA (Blue, Green, Red, Alpha) (hence the offset of 3)
+
+                bytes[counter + 3] = (byte)(bytes[counter + 3] * opacity);
+            }
+            
+            Marshal.Copy(bytes, 0, ptr, bytes.Length);
+            
+            bmp.UnlockBits(data);
+
+            return bmp;
+        }
     }
 }

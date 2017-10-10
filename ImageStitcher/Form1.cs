@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ImageStitcher.Properties;
 
 namespace ImageStitcher
 {
@@ -79,14 +80,16 @@ namespace ImageStitcher
             {
                 g.FillRectangle(Brushes.White, 0, 0, canvas.Width, canvas.Height);
 
+                g.DrawImage(Resources.Logo.ChangeImageOpacity(0.3), new Rectangle(width + padding + border, height + padding + border, width, height));
+
                 foreach (var (point, location) in CellCoordinates()
                     .Select(p => new Point(p.X * (width + padding) + border, p.Y * (height + padding) + border))
                     .Zip(containers, (p, c) => (Point: p, Path: c.ImageLocation))
                     .Where(t => t.Path != null && File.Exists(t.Path)))
                 {
-                    var image = Image.FromFile(location);
+                    using (var image = Image.FromFile(location))
+                        g.DrawImage(image, ImageBounds(image, point, width, height));
 
-                    g.DrawImage(image, ImageBounds(image, point, width, height));
                     progress.Report(1);
                 }
 
