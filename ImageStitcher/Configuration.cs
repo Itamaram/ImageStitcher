@@ -58,6 +58,6 @@ namespace ImageStitcher
         public string Line3 { get; set; }
 
         [XmlElement]
-        public string Line4 { get; set; }    
+        public string Line4 { get; set; } = "Dr Johay Amith";
     }
 }

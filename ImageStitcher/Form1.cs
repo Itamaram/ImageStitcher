@@ -55,9 +55,23 @@ namespace ImageStitcher
         {
             var loading = new ProgressForm(10);
             var progress = new Progress<int>(loading.Increment);
-            Task.Run(() => { Save(progress); });
+
+            var prompt = new SaveFileDialog
+            {
+                InitialDirectory = GetParentDirectory().FullName,
+                FileName = $"{textBox2.Text}-landscape-{CleanPath(textBox3.Text)}.jpg",
+                AddExtension = true,
+                DefaultExt = "jpg"
+            };
+
+            if(prompt.ShowDialog() != DialogResult.OK)
+                return;
+            
+            Task.Run(() => { Save(progress, prompt.FileName); });
             loading.ShowDialog();
         }
+
+        private static string CleanPath(string path) => Path.GetInvalidFileNameChars().Aggregate(path, (p, c) => p.Replace($"{c}", ""));
 
         private DirectoryInfo GetParentDirectory()
         {
@@ -67,7 +81,7 @@ namespace ImageStitcher
                 .FirstOrDefault();
         }
 
-        private void Save(IProgress<int> progress)
+        private void Save(IProgress<int> progress, string target)
         {
             var config = Configuration.Get;
             int width = config.Image.Width,
@@ -106,12 +120,9 @@ namespace ImageStitcher
                 progress.Report(1);
             }
 
-            var path = GetParentDirectory()
-                .Map(d => Path.Combine(d.FullName, $"{textBox2.Text}-landscape-{DateTime.Now:ddMMyyyy}.jpg"));
+            CompressAndSave(canvas, config.Output.Compression, target);
 
-            CompressAndSave(canvas, config.Output.Compression, path);
-
-            Process.Start(path);
+            Process.Start(target);
             progress.Report(10);
         }
 
