@@ -1,14 +1,11 @@
 ﻿using System.IO;
 using System.Windows.Forms;
 using System.Xml.Serialization;
-using EasyConfigurationSection;
 
 namespace ImageStitcher
 {
     public class Configuration
     {
-        public static Configuration Get => new EasyConfiguration().GetSection<Configuration>("Config");
-
         [XmlElement]
         public ImageConfiguration Image { get; set; } = new ImageConfiguration();
 
@@ -25,7 +22,7 @@ namespace ImageStitcher
         public int Height { get; set; } = 750;
 
         [XmlAttribute]
-        public int Padding { get; set; } = 10;
+        public int Padding { get; set; } = 15;
 
         [XmlAttribute]
         public int Border { get; set; } = 10;

@@ -20,10 +20,12 @@ namespace ImageStitcher
         {
             InitializeComponent();
 
-            textBox1.Text = Configuration.Get.Output.TextboxDefaults.Line1;
-            textBox2.Text = Configuration.Get.Output.TextboxDefaults.Line2;
-            textBox3.Text = Configuration.Get.Output.TextboxDefaults.Line3;
-            textBox4.Text = Configuration.Get.Output.TextboxDefaults.Line4;
+            var config = new Configuration();
+
+            textBox1.Text = config.Output.TextboxDefaults.Line1;
+            textBox2.Text = config.Output.TextboxDefaults.Line2;
+            textBox3.Text = config.Output.TextboxDefaults.Line3;
+            textBox4.Text = config.Output.TextboxDefaults.Line4;
 
             foreach (var (container, point) in containers.Zip(CellCoordinates()))
                 tableLayoutPanel1.Controls.Add(container, point.X, point.Y);
@@ -83,7 +85,7 @@ namespace ImageStitcher
 
         private void Save(IProgress<int> progress, string target)
         {
-            var config = Configuration.Get;
+            var config = new Configuration();
             int width = config.Image.Width,
                 height = config.Image.Height,
                 padding = config.Image.Padding,
